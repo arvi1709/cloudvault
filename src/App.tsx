@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import Dashboard from './components/Dashboard';
 import Auth from './components/Auth';
+import SharedFileView from './components/SharedFileView';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
@@ -30,6 +31,12 @@ export default function App() {
       console.error('Logout failed:', error);
     }
   };
+
+  // Check if this is a shared link route
+  if (window.location.pathname.startsWith('/share/')) {
+    const token = window.location.pathname.split('/share/')[1];
+    return <SharedFileView token={token} />;
+  }
 
   if (loading) {
     return (

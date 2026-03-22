@@ -27,7 +27,6 @@ export default function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
         ownerId: file.ownerId,
         shareToken,
         accessType,
-        expiryDate: expiry || null,
         createdAt: new Date().toISOString()
       });
 
@@ -103,20 +102,6 @@ export default function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-2">
                 {accessType === 'public' ? 'Anyone with the link can view and download' : 'Only specific authorized users can access'}
               </p>
-            </div>
-
-            <div className="space-y-4">
-              <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">Link Expiry (Optional)</label>
-              <div className="relative">
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
-                <input
-                  type="date"
-                  value={expiry}
-                  min={new Date().toISOString().split('T')[0]} // Prevents picking past dates
-                  onChange={(e) => setExpiry(e.target.value)}
-                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-none py-3.5 pl-11 pr-4 text-white focus:outline-none focus:border-orange-500 transition-colors font-bold text-sm"
-                />
-              </div>
             </div>
 
             {shareLink ? (
