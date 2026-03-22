@@ -59,6 +59,7 @@ export default function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
       await addDoc(collection(db, 'shares'), {
         fileId: file.id,
         ownerId: file.ownerId,
+        ownerEmail: auth.currentUser?.email || 'Unknown',
         shareToken,
         accessType,
         createdAt: new Date().toISOString()

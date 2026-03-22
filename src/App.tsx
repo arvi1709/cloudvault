@@ -14,8 +14,18 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
 
   useEffect(() => {
+    // If opening a shared link, grab the token from the URL and clear it so it doesn't stay in the bar
+    if (window.location.pathname.startsWith('/share/')) {
+      const token = window.location.pathname.split('/share/')[1];
+      if (token) {
+        setShareToken(token);
+      }
+      window.history.replaceState({}, '', '/');
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -32,12 +42,6 @@ export default function App() {
     }
   };
 
-  // Check if this is a shared link route
-  if (window.location.pathname.startsWith('/share/')) {
-    const token = window.location.pathname.split('/share/')[1];
-    return <SharedFileView token={token} />;
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -51,6 +55,9 @@ export default function App() {
   }
 
   if (!user) {
+    if (shareToken) {
+      return <SharedFileView token={shareToken} currentUser={null} />;
+    }
     return <Auth />;
   }
 
@@ -90,6 +97,15 @@ export default function App() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Shared Link Popup for Authenticated Users */}
+      {shareToken && (
+        <SharedFileView 
+          token={shareToken} 
+          onClose={() => setShareToken(null)} 
+          currentUser={user} 
+        />
+      )}
 
       {/* Global CSS for custom scrollbar */}
       <style dangerouslySetInnerHTML={{ __html: `
