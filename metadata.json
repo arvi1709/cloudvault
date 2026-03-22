@@ -1,0 +1,5 @@
+{
+  "name": "CloudVault",
+  "description": "A secure, cloud-based file storage and sharing application with client-side encryption and modern dashboard.",
+  "requestFramePermissions": []
+}

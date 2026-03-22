@@ -1,0 +1,67 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user profile information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique user ID from Firebase Auth." },
+        "email": { "type": "string", "format": "email", "description": "User's email address." },
+        "displayName": { "type": "string", "description": "User's display name." },
+        "photoURL": { "type": "string", "description": "User's profile picture URL." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user account was created." }
+      },
+      "required": ["uid", "email"]
+    },
+    "File": {
+      "title": "File Metadata",
+      "description": "Stores metadata and encrypted content of uploaded files.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique file ID." },
+        "name": { "type": "string", "description": "Original file name." },
+        "type": { "type": "string", "description": "MIME type of the file." },
+        "size": { "type": "integer", "description": "Size of the file in bytes." },
+        "ownerId": { "type": "string", "description": "UID of the user who owns the file." },
+        "encryptedContent": { "type": "string", "description": "Base64 encoded encrypted content (for demo purposes, limited by Firestore size)." },
+        "storagePath": { "type": "string", "description": "Path to the file in Firebase Storage." },
+        "isFavorite": { "type": "boolean", "description": "Whether the file is starred." },
+        "isTrashed": { "type": "boolean", "description": "Whether the file is in the recycle bin." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the file was uploaded." },
+        "encryptionKeyHint": { "type": "string", "description": "A hint for the encryption key (not the key itself)." }
+      },
+      "required": ["name", "type", "size", "ownerId", "createdAt"]
+    },
+    "Share": {
+      "title": "File Share",
+      "description": "Stores information about shared files.",
+      "type": "object",
+      "properties": {
+        "fileId": { "type": "string", "description": "ID of the shared file." },
+        "ownerId": { "type": "string", "description": "UID of the file owner." },
+        "shareToken": { "type": "string", "description": "Unique token for the shareable link." },
+        "accessType": { "type": "string", "enum": ["public", "private"], "description": "Access level." },
+        "expiryDate": { "type": "string", "format": "date-time", "description": "Optional expiry date for the link." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the share was created." }
+      },
+      "required": ["fileId", "ownerId", "shareToken", "accessType", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profile documents."
+    },
+    "/files/{fileId}": {
+      "schema": "File",
+      "description": "File metadata documents."
+    },
+    "/shares/{shareToken}": {
+      "schema": "Share",
+      "description": "Shareable link documents."
+    }
+  },
+  "firebase": {
+    "projectId": "self-drive-17ee0"
+  }
+}

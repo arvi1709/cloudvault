@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Document ID: {uid}
+    // Fields: uid, email, displayName, photoURL, createdAt
+    //
+    // Collection: files
+    // Document ID: {fileId}
+    // Fields: id, name, type, size, ownerId, encryptedContent, storagePath, isFavorite, isTrashed, createdAt, encryptionKeyHint
+    //
+    // Collection: shares
+    // Document ID: {shareToken}
+    // Fields: fileId, ownerId, shareToken, accessType, expiryDate, createdAt
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.ownerId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid is string &&
+             data.email is string;
+    }
+
+    function isValidFile(data) {
+      return data.keys().hasAll(['name', 'type', 'size', 'ownerId', 'createdAt']) &&
+             data.name is string && data.name.size() < 255 &&
+             data.type is string &&
+             data.size is int &&
+             data.ownerId == request.auth.uid &&
+             data.createdAt is string;
+    }
+
+    function isValidShare(data) {
+      return data.keys().hasAll(['fileId', 'ownerId', 'shareToken', 'accessType', 'createdAt']) &&
+             data.fileId is string &&
+             data.ownerId == request.auth.uid &&
+             data.shareToken is string &&
+             data.accessType in ['public', 'private'];
+    }
+
+    // Rules
+    match /users/{uid} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(uid) && isValidUser(request.resource.data);
+    }
+
+    match /files/{fileId} {
+      allow read: if isDocOwner() || 
+                    exists(/databases/$(database)/documents/shares/$(request.auth.uid + "_" + fileId)) ||
+                    get(/databases/$(database)/documents/shares/$(fileId)).data.accessType == 'public';
+      allow create: if isAuthenticated() && isValidFile(request.resource.data);
+      allow update: if isDocOwner() && isValidFile(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /shares/{shareToken} {
+      allow read: if true; // Publicly readable for sharing logic
+      allow create: if isAuthenticated() && isValidShare(request.resource.data);
+      allow update, delete: if isOwner(resource.data.ownerId);
+    }
+  }
+}
