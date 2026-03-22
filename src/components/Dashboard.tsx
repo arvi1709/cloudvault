@@ -297,7 +297,7 @@ export default function Dashboard({ activeTab, isUploadOpen, setIsUploadOpen }: 
             <Profile 
               user={auth.currentUser} 
               files={files} 
-              setActiveTab={setActiveTab} 
+              setActiveTab={activeTab} 
               setIsUploadOpen={setIsUploadOpen} 
               onLogout={() => auth.signOut()} 
             />
