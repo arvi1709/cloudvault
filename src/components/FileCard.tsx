@@ -82,24 +82,31 @@ export default function FileCard({
         </div>
 
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleFavorite(file); }}
-            className={`p-2 rounded-none transition-colors ${file.isFavorite ? 'text-orange-500 bg-orange-500/10' : 'text-zinc-600 hover:text-orange-500 hover:bg-zinc-900'}`}
-          >
-            <Star className={`w-4 h-4 ${file.isFavorite ? 'fill-current' : ''}`} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onShare(file); }}
-            className="p-2 text-zinc-600 hover:text-white hover:bg-zinc-900 rounded-none transition-colors"
-          >
-            <Share2 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(file); }}
-            className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-none transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {!file.isSharedItem && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleFavorite(file); }}
+                className={`p-2 rounded-none transition-colors ${file.isFavorite ? 'text-orange-500 bg-orange-500/10' : 'text-zinc-600 hover:text-orange-500 hover:bg-zinc-900'}`}
+              >
+                <Star className={`w-4 h-4 ${file.isFavorite ? 'fill-current' : ''}`} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onShare(file); }}
+                className="p-2 text-zinc-600 hover:text-white hover:bg-zinc-900 rounded-none transition-colors"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(file); }}
+                className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-none transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          {file.isSharedItem && (
+             <span className="text-[10px] text-orange-500 font-bold uppercase tracking-widest px-2">Shared by {file.ownerEmail}</span>
+          )}
         </div>
       </motion.div>
     );
@@ -119,12 +126,14 @@ export default function FileCard({
         </div>
         
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleFavorite(file); }}
-            className={`p-2 rounded-none transition-colors ${file.isFavorite ? 'text-orange-500 bg-orange-500/10' : 'text-zinc-600 hover:text-orange-500 hover:bg-zinc-900'}`}
-          >
-            <Star className={`w-4 h-4 ${file.isFavorite ? 'fill-current' : ''}`} />
-          </button>
+          {!file.isSharedItem && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(file); }}
+              className={`p-2 rounded-none transition-colors ${file.isFavorite ? 'text-orange-500 bg-orange-500/10' : 'text-zinc-600 hover:text-orange-500 hover:bg-zinc-900'}`}
+            >
+              <Star className={`w-4 h-4 ${file.isFavorite ? 'fill-current' : ''}`} />
+            </button>
+          )}
           
           <div className="relative group/menu">
             <button 
@@ -141,13 +150,25 @@ export default function FileCard({
                 <button onClick={(e) => { e.stopPropagation(); onDownload(file); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:bg-zinc-900 rounded-none transition-colors">
                   <Download className="w-4 h-4" /> Download
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); onShare(file); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:bg-zinc-900 rounded-none transition-colors">
-                  <Share2 className="w-4 h-4" /> Share
-                </button>
-                <div className="h-px bg-zinc-900 my-1" />
-                <button onClick={(e) => { e.stopPropagation(); onDelete(file); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-white hover:bg-red-500/20 rounded-none transition-colors">
-                  <Trash2 className="w-4 h-4" /> Delete
-                </button>
+                {!file.isSharedItem && (
+                  <>
+                    <button onClick={(e) => { e.stopPropagation(); onShare(file); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:bg-zinc-900 rounded-none transition-colors">
+                      <Share2 className="w-4 h-4" /> Share
+                    </button>
+                    <div className="h-px bg-zinc-900 my-1" />
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(file); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-white hover:bg-red-500/20 rounded-none transition-colors">
+                      <Trash2 className="w-4 h-4" /> Delete
+                    </button>
+                  </>
+                )}
+                {file.isSharedItem && (
+                  <>
+                    <div className="h-px bg-zinc-900 my-1" />
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(file); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-orange-500 hover:text-white hover:bg-orange-500/20 rounded-none transition-colors">
+                      <Trash2 className="w-4 h-4" /> Remove Share
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

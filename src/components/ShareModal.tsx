@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { X, Copy, Check, Globe, Lock, Calendar, Link as LinkIcon } from 'lucide-react';
+import { X, Copy, Check, Globe, Lock, Link as LinkIcon, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { db, OperationType, handleFirestoreError } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth, OperationType, handleFirestoreError } from '../lib/firebase';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 
 interface ShareModalProps {
   file: any;
@@ -16,10 +16,44 @@ export default function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
   const [shareLink, setShareLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [receiverEmail, setReceiverEmail] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const generateLink = async () => {
     setLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
     try {
+      // If sharing with specific user, verify they exist
+      if (accessType === 'private' && receiverEmail) {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', receiverEmail.toLowerCase().trim()));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          setErrorMsg('No user found with this email.');
+          setLoading(false);
+          return;
+        }
+
+        const receiver = querySnapshot.docs[0].data();
+
+        // Add to shared_with collection for the receiver's dashboard
+        await addDoc(collection(db, 'shared_files'), {
+          receiverId: receiver.uid,
+          receiverEmail: receiver.email,
+          ownerId: file.ownerId,
+          ownerEmail: auth.currentUser?.email || 'Unknown',
+          fileId: file.id,
+          fileData: file, // Store a snapshot of the file metadata
+          sharedAt: new Date().toISOString()
+        });
+
+        setSuccessMsg(`File securely shared with ${receiver.email}`);
+      }
+
+      // Generate a normal link anyway so the sender can copy it
       const shareToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
       await addDoc(collection(db, 'shares'), {
@@ -34,6 +68,7 @@ export default function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
       setShareLink(link);
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'shares');
+      setErrorMsg('An error occurred while sharing.');
     } finally {
       setLoading(false);
     }
@@ -103,6 +138,24 @@ export default function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
                 {accessType === 'public' ? 'Anyone with the link can view and download' : 'Only specific authorized users can access'}
               </p>
             </div>
+
+            {accessType === 'private' && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">Receiver's Email</label>
+                <div className="relative">
+                  <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
+                  <input
+                    type="email"
+                    value={receiverEmail}
+                    onChange={(e) => setReceiverEmail(e.target.value)}
+                    placeholder="Enter email to share directly to their Vault"
+                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-none py-3.5 pl-11 pr-4 text-white focus:outline-none focus:border-emerald-500 transition-colors font-bold text-sm"
+                  />
+                </div>
+                {errorMsg && <p className="text-red-500 text-[10px] font-bold uppercase tracking-widest">{errorMsg}</p>}
+                {successMsg && <p className="text-emerald-500 text-[10px] font-bold uppercase tracking-widest">{successMsg}</p>}
+              </div>
+            )}
 
             {shareLink ? (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">

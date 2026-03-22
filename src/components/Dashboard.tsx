@@ -42,6 +42,7 @@ interface DashboardProps {
 
 export default function Dashboard({ activeTab, isUploadOpen, setIsUploadOpen }: DashboardProps) {
   const [files, setFiles] = useState<any[]>([]);
+  const [sharedFiles, setSharedFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -59,9 +60,9 @@ export default function Dashboard({ activeTab, isUploadOpen, setIsUploadOpen }: 
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    let q = query(collection(db, 'files'), where('ownerId', '==', auth.currentUser.uid));
+    const q = query(collection(db, 'files'), where('ownerId', '==', auth.currentUser.uid));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribeFiles = onSnapshot(q, (snapshot) => {
       const filesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setFiles(filesData);
       setLoading(false);
@@ -70,7 +71,28 @@ export default function Dashboard({ activeTab, isUploadOpen, setIsUploadOpen }: 
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const sharedQ = query(collection(db, 'shared_files'), where('receiverId', '==', auth.currentUser.uid));
+    
+    const unsubscribeShared = onSnapshot(sharedQ, (snapshot) => {
+      const sharedData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: data.fileId, // Use original file ID
+          sharedDocId: doc.id, 
+          isSharedItem: true, 
+          ownerEmail: data.ownerEmail,
+          ...data.fileData 
+        };
+      });
+      setSharedFiles(sharedData);
+    }, (err) => {
+      console.error('Error fetching shared files:', err);
+    });
+
+    return () => {
+      unsubscribeFiles();
+      unsubscribeShared();
+    };
   }, []);
 
   const displayFiles = useMemo(() => {
@@ -78,6 +100,8 @@ export default function Dashboard({ activeTab, isUploadOpen, setIsUploadOpen }: 
     
     if (activeTab === 'dashboard') {
       filtered = files.filter(f => !f.isTrashed);
+    } else if (activeTab === 'shared') {
+      filtered = sharedFiles;
     } else if (activeTab === 'favorites') {
       filtered = files.filter(f => f.isFavorite && !f.isTrashed);
     } else if (activeTab === 'trash') {
@@ -101,7 +125,7 @@ export default function Dashboard({ activeTab, isUploadOpen, setIsUploadOpen }: 
     }
 
     return filtered;
-  }, [files, activeTab, sizeFilter]);
+  }, [files, sharedFiles, activeTab, sizeFilter]);
 
   const pinnedFiles = useMemo(() => files.filter(f => f.isFavorite && !f.isTrashed), [files]);
   const recentFiles = useMemo(() => files.filter(f => !f.isTrashed).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 8), [files]);
@@ -116,7 +140,10 @@ export default function Dashboard({ activeTab, isUploadOpen, setIsUploadOpen }: 
 
   const handleDelete = async (file: any) => {
     try {
-      if (file.isTrashed) {
+      if (file.isSharedItem) {
+        // Remove from shared_files collection
+        await deleteDoc(doc(db, 'shared_files', file.sharedDocId));
+      } else if (file.isTrashed) {
         await deleteDoc(doc(db, 'files', file.id));
       } else {
         await updateDoc(doc(db, 'files', file.id), { isTrashed: true });
@@ -338,7 +365,7 @@ export default function Dashboard({ activeTab, isUploadOpen, setIsUploadOpen }: 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {recentFiles.slice(0, 4).map(file => (
                       <FileCard
-                        key={file.id}
+                        key={file.isSharedItem ? file.sharedDocId : file.id}
                         file={file}
                         onDownload={handleDownload}
                         onDelete={handleDelete}
@@ -429,7 +456,7 @@ export default function Dashboard({ activeTab, isUploadOpen, setIsUploadOpen }: 
                     ) : (
                       <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-3"}>
                         {displayFiles.map((file) => (
-                          <div key={file.id} className="relative group/card">
+                          <div key={file.isSharedItem ? file.sharedDocId : file.id} className="relative group/card">
                             <button
                               onClick={() => toggleSelect(file.id)}
                               className={`absolute top-3 left-3 z-10 p-1 rounded-none transition-all opacity-0 group-hover/card:opacity-100 ${
