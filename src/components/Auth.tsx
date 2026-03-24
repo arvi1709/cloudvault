@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { Shield, Lock, Mail, ArrowRight, Globe, Cpu, LayoutGrid } from 'lucide-react';
 import { motion } from 'motion/react';
 import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '../lib/firebase';
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "../lib/firebase"; // adjust path if needed
+import { getAuth } from "firebase/auth";
+
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -10,27 +14,54 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const createUserIfNotExists = async (user: any) => {
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+  
+    if (!userSnap.exists()) {
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: user.email,
+        name: user.displayName || "User",
+        createdAt: new Date()
+      });
+  
+      console.log("User created in Firestore");
+    }
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
     try {
+      let userCredential;
+  
       if (isLogin) {
-        await signInWithEmail(email, password);
+        userCredential = await signInWithEmail(email, password);
       } else {
-        await signUpWithEmail(email, password);
+        userCredential = await signUpWithEmail(email, password);
       }
+  
+      const user = userCredential.user;
+  
+      await createUserIfNotExists(user);
+  
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
       setLoading(false);
     }
   };
-
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
+  
     try {
-      await signInWithGoogle();
+      const userCredential = await signInWithGoogle();
+      const user = userCredential.user;
+  
+      await createUserIfNotExists(user);
+  
     } catch (err: any) {
       setError(err.message || 'Google sign in failed');
       setLoading(false);
