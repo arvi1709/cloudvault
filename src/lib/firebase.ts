@@ -36,13 +36,30 @@ export const signInWithGoogle = async () => {
 export const signInWithEmail = async (email: string, password: string) => {
   try {
     const result = await signInWithEmailAndPassword(auth, email, password);
-    return result.user;
+    const user = result.user;
+
+    // 🔥 ADD THIS BLOCK
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.email?.split('@')[0] || 'User',
+        photoURL: null,
+        createdAt: serverTimestamp()
+      });
+      console.log("User recreated after deletion");
+    }
+
+    return user;
+
   } catch (error) {
     console.error('Email sign in error:', error);
     throw error;
   }
 };
-
 export const signUpWithEmail = async (email: string, password: string) => {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password);
